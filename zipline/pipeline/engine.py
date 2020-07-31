@@ -577,9 +577,10 @@ class SimplePipelineEngine(PipelineEngine):
             for input_ in specialized:
                 input_data = ensure_ndarray(workspace[input_])
                 offset = offsets[term, input_]
-                input_data = input_data[offset:]
-                if refcounts[input_] > 1:
-                    input_data = input_data.copy()
+                # OPTIMIZATION: Don't make a copy by doing input_data[0:] if
+                # offset is zero.
+                if offset:
+                    input_data = input_data[offset:]
                 out.append(input_data)
         return out
 

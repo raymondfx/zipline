@@ -257,11 +257,6 @@ conditional_arguments = {
     'setup_requires' if not conda_build else 'build_requires': setup_requires,
 }
 
-if 'sdist' in sys.argv:
-    with open('README.rst') as f:
-        conditional_arguments['long_description'] = f.read()
-
-
 setup(
     name='zipline',
     url="http://zipline.io",

@@ -25,9 +25,7 @@ class CheckWindowsMixin(object):
             else:
                 expected = np.asanyarray(expected)
                 actual = input_[:, col_ix]
-                assert_equal(actual, expected,
-                             array_decimal=(6 if expected.dtype.kind == 'f'
-                                            else None))
+                assert_equal(actual, expected)
 
         # output is just latest
         out[:] = input_[-1]
