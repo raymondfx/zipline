@@ -28,7 +28,7 @@ from zipline.pipeline.loaders import USEquityPricingLoader
 import zipline.utils.paths as pth
 from zipline.extensions import load
 from zipline.errors import SymbolNotFound
-from zipline.algorithm import TradingAlgorithm
+from zipline.algorithm import TradingAlgorithm, NoBenchmark
 from zipline.finance.blotter import Blotter
 
 log = logbook.Logger(__name__)
@@ -189,32 +189,46 @@ def _run(handle_data,
         except ValueError as e:
             raise _RunAlgoError(str(e))
 
-    perf = TradingAlgorithm(
-        namespace=namespace,
-        data_portal=data,
-        get_pipeline_loader=choose_loader,
-        trading_calendar=trading_calendar,
-        sim_params=SimulationParameters(
-            start_session=start,
-            end_session=end,
+    try:
+        perf = TradingAlgorithm(
+            namespace=namespace,
+            data_portal=data,
+            get_pipeline_loader=choose_loader,
             trading_calendar=trading_calendar,
-            capital_base=capital_base,
-            data_frequency=data_frequency,
-        ),
-        metrics_set=metrics_set,
-        blotter=blotter,
-        benchmark_returns=benchmark_returns,
-        benchmark_sid=benchmark_sid,
-        **{
-            'initialize': initialize,
-            'handle_data': handle_data,
-            'before_trading_start': before_trading_start,
-            'analyze': analyze,
-        } if algotext is None else {
-            'algo_filename': getattr(algofile, 'name', '<algorithm>'),
-            'script': algotext,
-        }
-    ).run()
+            sim_params=SimulationParameters(
+                start_session=start,
+                end_session=end,
+                trading_calendar=trading_calendar,
+                capital_base=capital_base,
+                data_frequency=data_frequency,
+            ),
+            metrics_set=metrics_set,
+            blotter=blotter,
+            benchmark_returns=benchmark_returns,
+            benchmark_sid=benchmark_sid,
+            **{
+                'initialize': initialize,
+                'handle_data': handle_data,
+                'before_trading_start': before_trading_start,
+                'analyze': analyze,
+            } if algotext is None else {
+                'algo_filename': getattr(algofile, 'name', '<algorithm>'),
+                'script': algotext,
+            }
+        ).run()
+    except NoBenchmark:
+        raise _RunAlgoError(
+            (
+                'No ``benchmark_spec`` was provided, and'
+                ' ``zipline.api.set_benchmark`` was not called in'
+                ' ``initialize``.'
+            ),
+            (
+                "Neither '--benchmark-symbol' nor '--benchmark-sid' was"
+                " provided, and ``zipline.api.set_benchmark`` was not called"
+                " in ``initialize``. Did you mean to pass '--no-benchmark'?"
+            ),
+        )
 
     if output == '-':
         click.echo(str(perf))
@@ -401,14 +415,14 @@ class BenchmarkSpec(object):
 
     Parameters
     ----------
-    benchmark_returns : pd.Series
+    benchmark_returns : pd.Series, optional
         Series of returns to use as the benchmark.
     benchmark_file : str or file
         File containing a csv with `date` and `return` columns, to be read as
         the benchmark.
-    benchmark_sid : int
+    benchmark_sid : int, optional
         Sid of the asset to use as a benchmark.
-    benchmark_symbol : int
+    benchmark_symbol : str, optional
         Symbol of the asset to use as a benchmark. Symbol will be looked up as
         of the end date of the backtest.
     no_benchmark : bool
@@ -501,28 +515,27 @@ class BenchmarkSpec(object):
                 raise _RunAlgoError(
                     "Symbol %s as a benchmark not found in this bundle."
                 )
+        elif self.no_benchmark:
+            benchmark_sid = None
+            benchmark_returns = self._zero_benchmark_returns(
+                start_date=start_date,
+                end_date=end_date,
+            )
         else:
-            if not self.no_benchmark:
-                log.warn(
-                    "No benchmark configured. "
-                    "Assuming algorithm calls set_benchmark."
-                )
-                log.warn(
-                    "Pass --benchmark-sid, --benchmark-symbol, or"
-                    " --benchmark-file to set a source of benchmark returns."
-                )
-                log.warn(
-                    "Pass --no-benchmark to use a dummy benchmark "
-                    "of zero returns.",
-                )
-                benchmark_sid = None
-                benchmark_returns = None
-            else:
-                benchmark_sid = None
-                benchmark_returns = self._zero_benchmark_returns(
-                    start_date=start_date,
-                    end_date=end_date,
-                )
+            log.warn(
+                "No benchmark configured. "
+                "Assuming algorithm calls set_benchmark."
+            )
+            log.warn(
+                "Pass --benchmark-sid, --benchmark-symbol, or"
+                " --benchmark-file to set a source of benchmark returns."
+            )
+            log.warn(
+                "Pass --no-benchmark to use a dummy benchmark "
+                "of zero returns.",
+            )
+            benchmark_sid = None
+            benchmark_returns = None
 
         return benchmark_sid, benchmark_returns
 
