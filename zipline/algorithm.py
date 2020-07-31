@@ -140,13 +140,6 @@ log = logbook.Logger("ZiplineLog")
 AttachedPipeline = namedtuple('AttachedPipeline', 'pipe chunks eager')
 
 
-class NoBenchmark(ValueError):
-    def __init__(self):
-        super(NoBenchmark, self).__init__(
-            'Must specify either benchmark_sid or benchmark_returns.',
-        )
-
-
 class TradingAlgorithm(object):
     """A class that represents a trading strategy and parameters to execute
     the strategy.
@@ -540,7 +533,8 @@ class TradingAlgorithm(object):
             benchmark_returns = None
         else:
             if self.benchmark_returns is None:
-                raise NoBenchmark()
+                raise ValueError("Must specify either benchmark_sid "
+                                 "or benchmark_returns.")
             benchmark_asset = None
             benchmark_returns = self.benchmark_returns
         return BenchmarkSource(

@@ -81,11 +81,11 @@ def continuous_future(root_symbol_str, offset=0, roll='volume', adjustment='mul'
 
     Returns
     -------
-    continuous_future : zipline.assets.ContinuousFuture
+    continuous_future : ContinuousFuture
         The continuous future specifier.
     """
 
-def fetch_csv(url, pre_func=None, post_func=None, date_column='date', date_format=None, timezone='UTC', symbol=None, mask=True, symbol_column=None, special_params_checker=None, country_code=None, **kwargs):
+def fetch_csv(url, pre_func=None, post_func=None, date_column='date', date_format=None, timezone='UTC', symbol=None, mask=True, symbol_column=None, special_params_checker=None, **kwargs):
     """Fetch a csv from a remote url and register the data so that it is
     queryable from the ``data`` object.
 
@@ -120,8 +120,6 @@ def fetch_csv(url, pre_func=None, post_func=None, date_column='date', date_forma
         argument is the name of the column in the preprocessed dataframe
         containing the symbols. This will be used along with the date
         information to map the sids in the asset finder.
-    country_code : str, optional
-        Country code to use to disambiguate symbol lookups.
     **kwargs
         Forwarded to :func:`pandas.read_csv`.
 
@@ -141,7 +139,7 @@ def future_symbol(symbol):
 
     Returns
     -------
-    future : zipline.assets.Future
+    future : Future
         The future that trades with the name ``symbol``.
 
     Raises
@@ -151,17 +149,18 @@ def future_symbol(symbol):
     """
 
 def get_datetime(tz=None):
-    """Returns the current simulation datetime.
+    """
+Returns the current simulation datetime.
 
-    Parameters
-    ----------
-    tz : tzinfo or str, optional
-        The timezone to return the datetime in. This defaults to utc.
+Parameters
+----------
+tz : tzinfo or str, optional
+    The timezone to return the datetime in. This defaults to utc.
 
-    Returns
-    -------
-    dt : datetime
-        The current simulation datetime converted to ``tz``.
+Returns
+-------
+dt : datetime
+    The current simulation datetime converted to ``tz``.
     """
 
 def get_environment(field='platform'):
@@ -241,12 +240,12 @@ def history(bar_count, frequency, field, ffill=True):
     """
 
 def order(asset, amount, limit_price=None, stop_price=None, style=None):
-    """Place an order for a fixed number of shares.
+    """Place an order.
 
     Parameters
     ----------
     asset : Asset
-        The asset to be ordered.
+        The asset that this order is for.
     amount : int
         The amount of shares to order. If ``amount`` is positive, this is
         the number of shares to buy or cover. If ``amount`` is negative,
@@ -472,21 +471,25 @@ def order_target_value(asset, target, limit_price=None, stop_price=None, style=N
     """
 
 def order_value(asset, value, limit_price=None, stop_price=None, style=None):
-    """Place an order for a fixed amount of money.
-
-    Equivalent to ``order(asset, value / data.current(asset, 'price'))``.
+    """Place an order by desired value rather than desired number of
+    shares.
 
     Parameters
     ----------
     asset : Asset
-        The asset to be ordered.
+        The asset that this order is for.
     value : float
-        Amount of value of ``asset`` to be transacted. The number of shares
-        bought or sold will be equal to ``value / current_price``.
+        If the requested asset exists, the requested value is
+        divided by its price to imply the number of shares to transact.
+        If the Asset being ordered is a Future, the 'value' calculated
+        is actually the exposure, as Futures have no 'value'.
+
+        value > 0 :: Buy/Cover
+        value < 0 :: Sell/Short
     limit_price : float, optional
-        Limit price for the order.
+        The limit price for the order.
     stop_price : float, optional
-        Stop price for the order.
+        The stop price for the order.
     style : ExecutionStyle
         The execution style for the order.
 
@@ -508,12 +511,13 @@ def order_value(asset, value, limit_price=None, stop_price=None, style=None):
     """
 
 def pipeline_output(name):
-    """Get results of the pipeline attached by with name ``name``.
+    """Get the results of the pipeline that was attached with the name:
+    ``name``.
 
     Parameters
     ----------
     name : str
-        Name of the pipeline from which to fetch results.
+        Name of the pipeline for which results are requested.
 
     Returns
     -------
@@ -548,24 +552,20 @@ def record(*args, **kwargs):
     """
 
 def schedule_function(func, date_rule=None, time_rule=None, half_days=True, calendar=None):
-    """Schedule a function to be called repeatedly in the future.
+    """Schedules a function to be called according to some timed rules.
 
     Parameters
     ----------
-    func : callable
-        The function to execute when the rule is triggered. ``func`` should
-        have the same signature as ``handle_data``.
-    date_rule : zipline.utils.events.EventRule, optional
-        Rule for the dates on which to execute ``func``. If not
-        passed, the function will run every trading day.
-    time_rule : zipline.utils.events.EventRule, optional
-        Rule for the time at which to execute ``func``. If not passed, the
-        function will execute at the end of the first market minute of the
-        day.
+    func : callable[(context, data) -> None]
+        The function to execute when the rule is triggered.
+    date_rule : EventRule, optional
+        The rule for the dates to execute this function.
+    time_rule : EventRule, optional
+        The rule for the times to execute this function.
     half_days : bool, optional
-        Should this rule fire on half days? Default is True.
+        Should this rule fire on half days?
     calendar : Sentinel, optional
-        Calendar used to compute rules that depend on the trading calendar.
+        Calendar used to reconcile date and time rules.
 
     See Also
     --------
@@ -591,7 +591,7 @@ def set_benchmark(benchmark):
 
     Parameters
     ----------
-    benchmark : zipline.assets.Asset
+    benchmark : Asset
         The asset to set as the new benchmark.
 
     Notes
@@ -623,11 +623,6 @@ def set_commission(us_equities=None, us_futures=None):
         The commission model to use for trading US equities.
     us_futures : FutureCommissionModel
         The commission model to use for trading US futures.
-
-    Notes
-    -----
-    This function can only be called during
-    :func:`~zipline.api.initialize`.
 
     See Also
     --------
@@ -733,11 +728,6 @@ def set_slippage(us_equities=None, us_futures=None):
     us_futures : FutureSlippageModel
         The slippage model to use for trading US futures.
 
-    Notes
-    -----
-    This function can only be called during
-    :func:`~zipline.api.initialize`.
-
     See Also
     --------
     :class:`zipline.finance.slippage.SlippageModel`
@@ -764,7 +754,7 @@ def sid(sid):
 
     Returns
     -------
-    asset : zipline.assets.Asset
+    asset : Asset
         The asset with the given ``sid``.
 
     Raises
@@ -773,19 +763,17 @@ def sid(sid):
         When a requested ``sid`` does not map to any asset.
     """
 
-def symbol(symbol_str, country_code=None):
+def symbol(symbol_str):
     """Lookup an Equity by its ticker symbol.
 
     Parameters
     ----------
     symbol_str : str
         The ticker symbol for the equity to lookup.
-    country_code : str or None, optional
-        A country to limit symbol searches to.
 
     Returns
     -------
-    equity : zipline.assets.Equity
+    equity : Equity
         The equity that held the ticker symbol on the current
         symbol lookup date.
 
@@ -799,19 +787,17 @@ def symbol(symbol_str, country_code=None):
     :func:`zipline.api.set_symbol_lookup_date`
     """
 
-def symbols(*args, **kwargs):
+def symbols(*args):
     """Lookup multuple Equities as a list.
 
     Parameters
     ----------
     *args : iterable[str]
         The ticker symbols to lookup.
-    country_code : str or None, optional
-        A country to limit symbol searches to.
 
     Returns
     -------
-    equities : list[zipline.assets.Equity]
+    equities : list[Equity]
         The equities that held the given ticker symbols on the current
         symbol lookup date.
 
